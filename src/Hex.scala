@@ -1,3 +1,4 @@
+import scala.Console._
 import scala.annotation.tailrec
 
 object Hex {
@@ -19,7 +20,46 @@ def play(gameState: GameState, coordinate:(Int,Int),color:Cells.Cell):GameState=
     throw new IllegalStateException
   else gameState.updated(coordinate._1,gameState(coordinate._1).updated(coordinate._2,color))
 
+def printInTUI(gameState: GameState):Unit={
+  print(" ")
+  var trailingSpaceCounter=0
+  for {
+    i <- gameState.indices
+  } {
+    print(s"${BLUE}   *${RESET}")
+  }
+  println()
+  for{
+    line <- gameState
+  } {
+    print(" " * trailingSpaceCounter)
+    print(s"${RED}*${RESET}")
+    for {
+      cell <- line
+    } {
+      print(" - ".concat(Cells.textRepresentation(cell)))
+    }
+    println(s"${RED}  *${RESET}")
+    if (trailingSpaceCounter < 8) {
+      print(" " * (trailingSpaceCounter + 5))
+      for {
+        i <- 0 to gameState.length - 2
+      } {
+        print("\\ / ")
+      }
+      println()
+      trailingSpaceCounter += 2
+  } else {
+      print(" " * (trailingSpaceCounter + 1))
+      for {
+        i <- gameState.indices
+      } {
+        print(s"${BLUE}   *${RESET}")
+      }
+    }
+  }
 
+}
   val emptyGame:GameState=List(List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
   val halfFilledGame:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Empty,Cells.Red,Cells.Empty,Cells.Blue),List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
 }
