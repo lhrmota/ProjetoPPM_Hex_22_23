@@ -2,6 +2,7 @@ import Cells.Cell
 
 import scala.Console._
 import scala.annotation.tailrec
+import scala.io.StdIn.readInt
 
 object Hex {
   type GameState=List[List[Cells.Cell]]
@@ -42,6 +43,30 @@ object Hex {
       }
     val transposedGameState=gameState.transpose // To analyse columns: treat them as lines in a transposed gameState
     hasWinningLine(gameState) || hasWinningLine(transposedGameState)
+  }
+
+  @tailrec
+  def askHumanPos(gameState: GameState):(Int,Int) = {
+    println("Pf indique a coordenada onde quer jogar.")
+    val line= readInt()
+    val row=readInt()
+    if(gameState(line)(row)==Cells.Empty)
+      (line,row)
+    else askHumanPos(gameState)
+  }
+
+  @tailrec
+  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :Cell=
+    if(hasContiguousLine(gameState ))
+      color
+    else {
+      val nextPosition=if(humanPlaying) askHumanPos(gameState)
+      else computerMove(gameState)
+      playLoop(play(gameState,nextPosition,color),!humanPlaying,Cells.opposite(color))
+    }
+
+  def playGame(humanPlaying: Boolean, humanColor: Cells.Cell): Unit ={
+    println("Winning color:"+playLoop(emptyGame,humanPlaying,humanColor))
   }
 
 
