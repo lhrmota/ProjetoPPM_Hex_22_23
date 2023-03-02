@@ -47,8 +47,9 @@ object Hex {
 
   @tailrec
   def askHumanPos(gameState: GameState):(Int,Int) = {
-    println("Pf indique a coordenada onde quer jogar.")
+    println("Pf indique a linha onde quer jogar.")
     val line= readInt()
+    println("Pf indique a coluna onde quer jogar.")
     val row=readInt()
     if(gameState(line)(row)==Cells.Empty)
       (line,row)
@@ -56,14 +57,16 @@ object Hex {
   }
 
   @tailrec
-  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :Cell=
+  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :Cell= {
+    printInTUI(gameState)
     if(hasContiguousLine(gameState ))
-      color
+      Cells.opposite(color)
     else {
       val nextPosition=if(humanPlaying) askHumanPos(gameState)
       else computerMove(gameState)
       playLoop(play(gameState,nextPosition,color),!humanPlaying,Cells.opposite(color))
     }
+  }
 
   def playGame(humanPlaying: Boolean, humanColor: Cells.Cell): Unit ={
     println("Winning color:"+playLoop(emptyGame,humanPlaying,humanColor))
@@ -106,6 +109,7 @@ object Hex {
           } {
             print(s"${BLUE}   *${RESET}")
           }
+          println()
         }
       }
   }
@@ -114,6 +118,6 @@ object Hex {
   val finishedGame1:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue),List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
   val finishedGame2:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Empty,Cells.Blue),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty))
   def main(args: Array[String]): Unit = {
-    hasContiguousLine(Hex.finishedGame1)
+    playGame(humanPlaying = true,Cells.Blue)
   }
 }
