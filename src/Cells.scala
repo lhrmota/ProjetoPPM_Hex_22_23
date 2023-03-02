@@ -9,6 +9,12 @@ object Cells extends Enumeration {
       case Blue => s"${BLUE}O${RESET}"
       case Empty => s"${WHITE}.${RESET}"
     }
+  def opposite(cell: Cell):Cell=
+    if(cell==Blue)
+      Red
+    else if(cell==Red)
+      Blue
+    else throw new IllegalArgumentException
 }
 
 
