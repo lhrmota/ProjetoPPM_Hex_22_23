@@ -2,7 +2,7 @@ import Cells.Cell
 
 import scala.Console._
 import scala.annotation.tailrec
-import scala.io.StdIn.readInt
+import scala.io.StdIn.{readInt, readLine}
 
 object Hex {
   type GameState=List[List[Cells.Cell]]
@@ -51,25 +51,43 @@ object Hex {
     val line= readInt()
     println("Pf indique a coluna onde quer jogar.")
     val row=readInt()
-    if(gameState(line)(row)==Cells.Empty)
+    if(line>=0 && row>=0 && line<gameState.length && row<gameState(line).length && gameState(line)(row)==Cells.Empty)
       (line,row)
-    else askHumanPos(gameState)
+    else {
+      println("Posiçõ inválida, pPF repita a introdução.2")
+      askHumanPos(gameState)
+    }
   }
 
+  def askUserForMoveAcceptance() :Boolean= {
+    println("Prima enter para continuar ou U/Undo para desfazer última jogada.")
+    val answer = readLine()
+    !answer.equals("U") && !answer.equals("Undo")
+  }
+
+  /* @return human won/ winning color */
   @tailrec
-  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :Cell= {
-    printInTUI(gameState)
+  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :(Cell,Boolean)= {
     if(hasContiguousLine(gameState ))
-      Cells.opposite(color)
+      (Cells.opposite(color),!humanPlaying)
     else {
       val nextPosition=if(humanPlaying) askHumanPos(gameState)
       else computerMove(gameState)
-      playLoop(play(gameState,nextPosition,color),!humanPlaying,Cells.opposite(color))
+      printInTUI(play(gameState,nextPosition,color))
+      val accept=askUserForMoveAcceptance()
+      if(accept)
+        playLoop(play(gameState,nextPosition,color),!humanPlaying,Cells.opposite(color))
+      else
+        playLoop(gameState,humanPlaying,color)
     }
   }
 
   def playGame(humanPlaying: Boolean, humanColor: Cells.Cell): Unit ={
-    println("Winning color:"+playLoop(emptyGame,humanPlaying,humanColor))
+    val initialGame=emptyGame
+    printInTUI(initialGame)
+    val result=playLoop(emptyGame,humanPlaying,humanColor)
+    val winner=if(result._2) "Human" else "Computer"
+    println("Winning color:"+result._1 + ". "+winner+" has won.")
   }
 
 
