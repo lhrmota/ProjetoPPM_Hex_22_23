@@ -1,4 +1,5 @@
 import Cells.Cell
+import com.sun.org.apache.bcel.internal.classfile.LineNumber
 
 import scala.Console._
 import scala.annotation.tailrec
@@ -25,22 +26,48 @@ object Hex {
     throw new IllegalStateException
   else gameState.updated(coordinate._1,gameState(coordinate._1).updated(coordinate._2,color))
 
+
+  def removeInvalidPositions(gameState: GameState, value: List[(Int, Int)]): List[(Int, Int)] =
+    value filter((position:(Int,Int))=> position._1>=0 && position._1<gameState.length && position._2>=0 && position._2<gameState(position._1).length)
+
+  // Will return a list of connected positions. Must include all connected positions, as path may "snake" around the board
+  def getConnectedPositions(gameState: GameState, lineNumber: Int, rowNumber: Int):List[(Int,Int)] = {
+    removeInvalidPositions(gameState,List((lineNumber,rowNumber-1),(lineNumber,rowNumber+1),(lineNumber-1,rowNumber),
+      (lineNumber-1,rowNumber+1),(lineNumber+1,rowNumber-1),(lineNumber+1,rowNumber)))
+  }
+
+
   def hasContiguousLine(gameState: GameState): Boolean ={
-    @tailrec
-    def isWinningLine(line: List[Cell]):Boolean =
-      line match {
-        case Cells.Empty::_ => false
-        case cell1::cell2::Nil if cell1.equals(cell2) => true
-        case cell1::cell2::rest if cell1.equals(cell2) => isWinningLine(cell2::rest)
-        case _ =>false
+    def isWinningPath(gameState: GameState,color:Cells.Cell,position:(Int,Int)):Boolean = {
+      val currentPosition=gameState(position._1)(position._2)
+      if(currentPosition!=color)
+        false
+      else{
+        // check if end of board has been reached, in which casa the line exists
+        if(position._2==gameState(position._1).length-1)
+          true
+        else {
+          val connectedPositions: List[(Int, Int)] = getConnectedPositions(gameState, position._1, position._2)
+          // Maybe use fold with isWinningPath applied to all connected positions?
+          connectedPositions.foldRight(true)((iteratedPosition:(Int,Int),result:Boolean)=>result||isWinningPath(gameState,color,iteratedPosition))
+        }
       }
 
-    @tailrec
-    def hasWinningLine(gameState: GameState) :Boolean=
-      gameState match {
-        case Nil =>false
-        case line::rest => isWinningLine(line) || hasWinningLine(rest)
+    }
+
+    def hasWinningLine(gameState: GameState) :Boolean= {
+      @tailrec
+      def hasWinningLineAux(gameState: GameState, lineNumber: Int): Boolean = {
+        gameState match {
+          case Nil =>false
+          case (Cells.Empty::_)::_ => false // no winning line starting with empty!
+          case line::rest  => isWinningPath(gameState, line.head,(lineNumber,0)) || hasWinningLineAux(rest,lineNumber+1)
+
+        }
       }
+      hasWinningLineAux(gameState, 0)
+    }
+
     val transposedGameState=gameState.transpose // To analyse columns: treat them as lines in a transposed gameState
     hasWinningLine(gameState) || hasWinningLine(transposedGameState)
   }
