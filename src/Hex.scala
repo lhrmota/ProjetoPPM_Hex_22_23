@@ -107,10 +107,13 @@ object Hex {
     }
   }
 
-  def playGame(humanPlaying: Boolean, humanColor: Cells.Cell): Unit ={
-    val initialGame=emptyGame
+  private def createEmptyGame(dimension: Int) :GameState=
+    List.fill(dimension)(List.fill(dimension)(Cells.Empty))
+
+  def playGame(humanPlaying: Boolean, humanColor: Cells.Cell, dimension:Int): Unit ={
+    val initialGame=createEmptyGame(dimension)
     printInTUI(initialGame)
-    val result=playLoop(emptyGame,humanPlaying,humanColor)
+    val result=playLoop(initialGame,humanPlaying,humanColor)
     val winner=if(result._2) "Human" else "Computer"
     println("Winning color:"+result._1 + ". "+winner+" has won.")
   }
@@ -136,7 +139,7 @@ object Hex {
           print(" - ".concat(Cells.textRepresentation(cell)))
         }
         println(s"${RED}  *${RESET}")
-        if (trailingSpaceCounter < 8) {
+        if (trailingSpaceCounter < (gameState.length-1)*2) {
           print(" " * (trailingSpaceCounter + 5))
           for {
             i <- 0 to gameState.length - 2
@@ -170,8 +173,8 @@ object Hex {
     List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),
     List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
   def main(args: Array[String]): Unit = {
-    //playGame(humanPlaying = true,Cells.Blue)
-    hasContiguousLine(halfFilledGame)
+    playGame(humanPlaying = true,Cells.Blue,6)
+    //hasContiguousLine(halfFilledGame)
     //hasContiguousLine(finishedGame1)
   }
 }
