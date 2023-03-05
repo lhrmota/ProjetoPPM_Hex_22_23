@@ -38,9 +38,9 @@ object Hex {
 
 
   def hasContiguousLine(gameState: GameState): Boolean ={
-    def isWinningPath(gameState: GameState,color:Cells.Cell,position:(Int,Int)):Boolean = {
-      val currentPosition=gameState(position._1)(position._2)
-      if(currentPosition!=color)
+    def isWinningPath(gameState: GameState,color:Cells.Cell,position:(Int,Int),visitedPositions:List[(Int,Int)]):Boolean = {
+      val currentCell=gameState(position._1)(position._2)
+      if(currentCell!=color)
         false
       else{
         // check if end of board has been reached, in which casa the line exists
@@ -48,24 +48,22 @@ object Hex {
           true
         else {
           val connectedPositions: List[(Int, Int)] = getConnectedPositions(gameState, position._1, position._2)
+          val notVisitedConnectedPositions=connectedPositions.diff(visitedPositions)
           // Maybe use fold with isWinningPath applied to all connected positions?
-          connectedPositions.foldRight(true)((iteratedPosition:(Int,Int),result:Boolean)=>result||isWinningPath(gameState,color,iteratedPosition))
+          notVisitedConnectedPositions.foldRight(false)((iteratedPosition:(Int,Int),result:Boolean)=>
+              result||isWinningPath(gameState,color,iteratedPosition,position::visitedPositions))
         }
       }
-
     }
-
     def hasWinningLine(gameState: GameState) :Boolean= {
-      @tailrec
-      def hasWinningLineAux(gameState: GameState, lineNumber: Int): Boolean = {
-        gameState match {
+      def hasWinningLineAux(gameState: GameState, lineNumber: Int): Boolean =
+        gameState(lineNumber) match {
           case Nil =>false
-          case (Cells.Empty::_)::_ => false // no winning line starting with empty!
-          case line::rest  => isWinningPath(gameState, line.head,(lineNumber,0)) || hasWinningLineAux(rest,lineNumber+1)
-
+          case Cells.Empty::_ =>  false// no winning line starting with empty!
+          case head::rest  => isWinningPath(gameState, head,(lineNumber,0),Nil)
         }
-      }
-      hasWinningLineAux(gameState, 0)
+      val existingLines = gameState.indices
+      existingLines.foldLeft(false)((value:Boolean,lineNumber:Int) => value || hasWinningLineAux(gameState, lineNumber))
     }
 
     val transposedGameState=gameState.transpose // To analyse columns: treat them as lines in a transposed gameState
@@ -159,10 +157,21 @@ object Hex {
       }
   }
   val emptyGame:GameState=List(List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
-  val halfFilledGame:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Empty,Cells.Red,Cells.Empty,Cells.Blue),List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
-  val finishedGame1:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue),List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
-  val finishedGame2:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Empty,Cells.Blue),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty))
+  val halfFilledGame:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),
+    List(Cells.Blue,Cells.Empty,Cells.Red,Cells.Empty,Cells.Blue),
+    List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),
+    List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),
+    List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
+  val finishedGame2Line:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue,Cells.Blue),List(Cells.Blue,Cells.Blue,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
+  val finishedGame2Row:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Blue,Cells.Empty),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Empty,Cells.Blue),List(Cells.Blue,Cells.Red,Cells.Red,Cells.Red,Cells.Empty),List(Cells.Red,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty),List(Cells.Empty,Cells.Red,Cells.Empty,Cells.Empty,Cells.Empty))
+  val finishedGameSnakeLine:GameState=List(List(Cells.Empty,Cells.Red,Cells.Blue,Cells.Red,Cells.Empty),
+    List(Cells.Blue,Cells.Blue,Cells.Empty,Cells.Blue,Cells.Blue),
+    List(Cells.Empty,Cells.Empty,Cells.Red,Cells.Red,Cells.Empty),
+    List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),
+    List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
   def main(args: Array[String]): Unit = {
-    playGame(humanPlaying = true,Cells.Blue)
+    //playGame(humanPlaying = true,Cells.Blue)
+    hasContiguousLine(halfFilledGame)
+    //hasContiguousLine(finishedGame1)
   }
 }
