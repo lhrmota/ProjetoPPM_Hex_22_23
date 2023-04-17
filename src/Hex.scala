@@ -1,5 +1,4 @@
 import Cells.Cell
-import com.sun.org.apache.bcel.internal.classfile.LineNumber
 
 import scala.Console._
 import scala.annotation.tailrec
@@ -9,6 +8,7 @@ object Hex {
   type GameState=List[List[Cells.Cell]]
 
   // @return is (line,row)
+  // TODO: não é puro, rever segundo os slides mais à frente
   @tailrec
   def computerMove(gameState: GameState):(Int,Int)= {
    val line:Int=(gameState.length*Math.random()).toInt
@@ -125,20 +125,20 @@ object Hex {
       for {
         i <- gameState.indices
       } {
-        print(s"${BLUE}   *${RESET}")
+        print(s"$BLUE   *$RESET")
       }
       println()
       for {
         line <- gameState
       } {
         print(" " * trailingSpaceCounter)
-        print(s"${RED}*${RESET}")
+        print(s"$RED*$RESET")
         for {
           cell <- line
         } {
           print(" - ".concat(Cells.textRepresentation(cell)))
         }
-        println(s"${RED}  *${RESET}")
+        println(s"$RED  *$RESET")
         if (trailingSpaceCounter < (gameState.length-1)*2) {
           print(" " * (trailingSpaceCounter + 5))
           for {
@@ -153,7 +153,7 @@ object Hex {
           for {
             i <- gameState.indices
           } {
-            print(s"${BLUE}   *${RESET}")
+            print(s"$BLUE   *$RESET")
           }
           println()
         }
