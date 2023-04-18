@@ -7,16 +7,69 @@ import scala.io.StdIn.{readInt, readLine}
 object Hex {
   type GameState = List[List[Cells.Cell]]
 
+  /* @return human won/ winning color */
+  @tailrec
+  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell, rand: RandomWithState): (Cell, Boolean, RandomWithState) = {
+    if (hasContiguousLine(gameState))
+      (Cells.opposite(color), !humanPlaying, rand)
+    else {
+      val nextPosition = if (humanPlaying) {
+        val pos = askHumanPos(gameState)
+        (pos._1, pos._2, rand)
+      }
+      else computerMove(gameState, color, rand)
+      printInTUI(play(gameState, (nextPosition._1, nextPosition._2), color))
+      // Debug
+      println("Extremes: red->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Red) +
+        "blue->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Blue))
+      val accept = askUserForMoveAcceptance()
+      if (accept)
+        playLoop(play(gameState, (nextPosition._1, nextPosition._2), color), !humanPlaying, Cells.opposite(color), rand)
+      else
+        playLoop(gameState, humanPlaying, color, rand)
+    }
+  }
+
+
+
   // @return is (line,row,RandomWithState)
   @tailrec
-  def computerMove(gameState: GameState, rand: RandomWithState): (Int, Int, RandomWithState) = {
-    val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
+  def computerMove(gameState: GameState, color: Cells.Cell, rand: RandomWithState): (Int, Int, RandomWithState) = {
+    val extremePositions=extremePositionsForColor(gameState,color)
+    if(extremePositions._1.isEmpty)// first move: get a position near the middle...
+        // will be (3,3), or, if this is occupied, (3,2)
+      if(gameState(3)(3).equals(Cells.opposite(color)))
+        (3,2,rand)
+      else
+        (3,3,rand)
+    else
+      if(extremePositions._1.head._2==0) // left is already at column 0... Nothing to do here... Will try to play at the right
+        if(extremePositions._2.head._2==gameState.length-1) { // right is already at column length-1... Nothing to do here... Will try to play randomt
+          val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
+          val row: (Int, RandomWithState) = line._2.nextInt(gameState.length)
+          if (gameState(line._1)(row._1) == Cells.Empty)
+            (line._1, row._1, row._2)
+          else Hex.computerMove(gameState, color, row._2)
+        }
+        else { // play at right... First get all vacant adjacent cells to the right, and choose one randomly
+          val possibleCells=extremePositions._2.foldRight(List[(Int,Int)]())((position:(Int,Int),runningList:List[(Int,Int)])=>connectedFreeCellsToTheRight(gameState,position):::runningList)
+          // DEBUG
+          println("Possible cells to the right:"+possibleCells)
+          // TODO choose random position
+          val nextRand = rand.nextInt(possibleCells.length)
+          val position = possibleCells(nextRand._1)
+          (0,0,nextRand._2)
+        }
+        else // play at left... First get all vacant adjacent cells to the left, and choose one randomly
+        // TODO
+        (0,0,rand)
+    // Old implementation, purely random
+    /*val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
     val row: (Int, RandomWithState) = line._2.nextInt(gameState.length)
     if (gameState(line._1)(row._1) == Cells.Empty)
       (line._1, row._1, row._2)
-    else Hex.computerMove(gameState, row._2)
+    else Hex.computerMove(gameState, row._2)*/
   }
-
 
   def play(gameState: GameState, coordinate: (Int, Int), color: Cells.Cell): GameState =
     if (coordinate._1 >= gameState.length || coordinate._2 >= gameState(coordinate._1).length || color == Cells.Empty)
@@ -25,17 +78,31 @@ object Hex {
       throw new IllegalStateException
     else gameState.updated(coordinate._1, gameState(coordinate._1).updated(coordinate._2, color))
 
-
   def removeInvalidPositions(gameState: GameState, value: List[(Int, Int)]): List[(Int, Int)] =
     value filter ((position: (Int, Int)) => position._1 >= 0 && position._1 < gameState.length && position._2 >= 0 && position._2 < gameState(position._1).length)
 
   // Will return a list of connected positions. Must include all connected positions, as path may "snake" around the board
-  def getConnectedPositions(gameState: GameState, lineNumber: Int, rowNumber: Int): List[(Int, Int)] = {
-    removeInvalidPositions(gameState, List((lineNumber, rowNumber - 1), (lineNumber, rowNumber + 1), (lineNumber - 1, rowNumber),
-      (lineNumber - 1, rowNumber + 1), (lineNumber + 1, rowNumber - 1), (lineNumber + 1, rowNumber)))
+  def getConnectedPositions(gameState: GameState, position: (Int, Int)): List[(Int, Int)] = {
+    removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1), (position._1 - 1, position._2),
+      (position._1 - 1, position._2 + 1), (position._1 + 1, position._2 - 1), (position._1 + 1, position._2)))
   }
 
+  def removeOccupedPositions(gameState: GameState, value: List[(Int, Int)]): List[(Int, Int)] =
+    value match {
+      case ::(position, next) =>
+        if(gameState(position._1)(position._2).equals(Cells.Empty))
+          position::removeOccupedPositions(gameState,next)
+        else removeOccupedPositions(gameState,next)
+      case Nil => Nil
+    }
 
+  def connectedFreeCellsToTheRight(gameState: GameState, position: (Int, Int)): List[(Int, Int)] =
+    removeOccupedPositions(gameState,removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1),
+      (position._1 + 1, position._2 - 1), (position._1 + 1, position._2))))
+
+  def connectedFreeCellsToTheLeft(gameState: GameState, position: (Int, Int)): List[(Int, Int)] =
+    removeOccupedPositions(gameState, removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1),
+      (position._1 - 1, position._2 - 1), (position._1 - 1, position._2))))
   def hasContiguousLine(gameState: GameState): Boolean = {
     def isWinningPath(gameState: GameState, color: Cells.Cell, position: (Int, Int), visitedPositions: List[(Int, Int)]): Boolean = {
       val currentCell = gameState(position._1)(position._2)
@@ -46,7 +113,7 @@ object Hex {
         if (position._2 == gameState(position._1).length - 1)
           true
         else {
-          val connectedPositions: List[(Int, Int)] = getConnectedPositions(gameState, position._1, position._2)
+          val connectedPositions: List[(Int, Int)] = getConnectedPositions(gameState, position)
           val notVisitedConnectedPositions = connectedPositions.diff(visitedPositions)
           // Maybe use fold with isWinningPath applied to all connected positions?
           notVisitedConnectedPositions.foldRight(false)((iteratedPosition: (Int, Int), result: Boolean) =>
@@ -92,28 +159,6 @@ object Hex {
     !answer.equals("U") && !answer.equals("Undo") && !answer.equals("u")
   }
 
-  /* @return human won/ winning color */
-  @tailrec
-  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell, rand: RandomWithState): (Cell, Boolean, RandomWithState) = {
-    if (hasContiguousLine(gameState))
-      (Cells.opposite(color), !humanPlaying, rand)
-    else {
-      val nextPosition = if (humanPlaying) {
-        val pos = askHumanPos(gameState)
-        (pos._1, pos._2, rand)
-      }
-      else computerMove(gameState, rand)
-      printInTUI(play(gameState, (nextPosition._1, nextPosition._2), color))
-      // Debug
-      println("Extremes: red->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Red)+
-        "blue->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Blue))
-      val accept = askUserForMoveAcceptance()
-      if (accept)
-        playLoop(play(gameState, (nextPosition._1, nextPosition._2), color), !humanPlaying, Cells.opposite(color), rand)
-      else
-        playLoop(gameState, humanPlaying, color, rand)
-    }
-  }
 
   def playGame(humanPlaying: Boolean, humanColor: Cells.Cell, dimension: Int, rand: RandomWithState): Unit = {
     val initialGame = createEmptyGame(dimension)
