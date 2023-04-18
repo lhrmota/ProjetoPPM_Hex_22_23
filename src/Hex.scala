@@ -7,15 +7,14 @@ import scala.io.StdIn.{readInt, readLine}
 object Hex {
   type GameState=List[List[Cells.Cell]]
 
-  // @return is (line,row)
-  // TODO: não é puro, rever segundo os slides mais à frente
+  // @return is (line,row,RandomWithState)
   @tailrec
-  def computerMove(gameState: GameState):(Int,Int)= {
-   val line:Int=(gameState.length*Math.random()).toInt
-   val row:Int=(gameState.length*Math.random()).toInt
-   if(gameState(line)(row)==Cells.Empty)
-     (line,row)
-   else Hex.computerMove(gameState)
+  def computerMove(gameState: GameState,rand:RandomWithState):(Int,Int,RandomWithState)= {
+   val line:(Int,RandomWithState)=rand.nextInt(gameState.length)
+   val row:(Int,RandomWithState)=line._2.nextInt(gameState.length)
+   if(gameState(line._1)(row._1)==Cells.Empty)
+     (line._1,row._1,row._2)
+   else Hex.computerMove(gameState,row._2)
  }
 
 
@@ -85,35 +84,38 @@ object Hex {
   }
 
   def askUserForMoveAcceptance() :Boolean= {
-    println("Prima enter para continuar ou U/Undo para desfazer última jogada.")
+    println("Prima enter para continuar ou u/U/Undo para desfazer última jogada.")
     val answer = readLine()
-    !answer.equals("U") && !answer.equals("Undo")
+    !answer.equals("U") && !answer.equals("Undo")&& !answer.equals("u")
   }
 
   /* @return human won/ winning color */
   @tailrec
-  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell) :(Cell,Boolean)= {
-    if(hasContiguousLine(gameState ))
-      (Cells.opposite(color),!humanPlaying)
+  def playLoop(gameState: GameState, humanPlaying: Boolean, color: Cell,rand:RandomWithState) :(Cell,Boolean,RandomWithState)= {
+    if(hasContiguousLine(gameState))
+      (Cells.opposite(color),!humanPlaying,rand)
     else {
-      val nextPosition=if(humanPlaying) askHumanPos(gameState)
-      else computerMove(gameState)
-      printInTUI(play(gameState,nextPosition,color))
+      val nextPosition=if(humanPlaying) {
+        val pos = askHumanPos(gameState)
+        (pos._1,pos._2,rand)
+      }
+      else computerMove(gameState,rand)
+      printInTUI(play(gameState,(nextPosition._1,nextPosition._2),color))
       val accept=askUserForMoveAcceptance()
       if(accept)
-        playLoop(play(gameState,nextPosition,color),!humanPlaying,Cells.opposite(color))
+        playLoop(play(gameState,(nextPosition._1,nextPosition._2),color),!humanPlaying,Cells.opposite(color),rand)
       else
-        playLoop(gameState,humanPlaying,color)
+        playLoop(gameState,humanPlaying,color,rand)
     }
   }
 
   private def createEmptyGame(dimension: Int) :GameState=
     List.fill(dimension)(List.fill(dimension)(Cells.Empty))
 
-  def playGame(humanPlaying: Boolean, humanColor: Cells.Cell, dimension:Int): Unit ={
+  def playGame(humanPlaying: Boolean, humanColor: Cells.Cell, dimension:Int, rand:RandomWithState): Unit ={
     val initialGame=createEmptyGame(dimension)
     printInTUI(initialGame)
-    val result=playLoop(initialGame,humanPlaying,humanColor)
+    val result=playLoop(initialGame,humanPlaying,humanColor,rand)
     val winner=if(result._2) "Human" else "Computer"
     println("Winning color:"+result._1 + ". "+winner+" has won.")
   }
@@ -173,7 +175,7 @@ object Hex {
     List(Cells.Red,Cells.Blue,Cells.Empty,Cells.Empty,Cells.Empty),
     List(Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty,Cells.Empty))
   def main(args: Array[String]): Unit = {
-    playGame(humanPlaying = true,Cells.Blue,6)
+    playGame(humanPlaying = true,Cells.Blue,6, MyRandom(System.currentTimeMillis()))
     //hasContiguousLine(halfFilledGame)
     //hasContiguousLine(finishedGame1)
   }
