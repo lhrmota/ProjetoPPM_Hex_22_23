@@ -60,9 +60,16 @@ object Hex {
           val position = possibleCells(nextRand._1)
           (0,0,nextRand._2)
         }
-        else // play at left... First get all vacant adjacent cells to the left, and choose one randomly
+        else {// play at left... First get all vacant adjacent cells to the left, and choose one randomly
+          val possibleCells = extremePositions._1.foldRight(List[(Int, Int)]())((position: (Int, Int), runningList: List[(Int, Int)]) => connectedFreeCellsToTheRight(gameState, position) ::: runningList)
+        // DEBUG
+        println("Possible cells to the right:" + possibleCells)
+        // TODO choose random position
+        val nextRand = rand.nextInt(possibleCells.length)
+        val position = possibleCells(nextRand._1)
         // TODO
         (0,0,rand)
+      }
     // Old implementation, purely random
     /*val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
     val row: (Int, RandomWithState) = line._2.nextInt(gameState.length)
@@ -96,9 +103,11 @@ object Hex {
       case Nil => Nil
     }
 
-  def connectedFreeCellsToTheRight(gameState: GameState, position: (Int, Int)): List[(Int, Int)] =
-    removeOccupedPositions(gameState,removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1),
-      (position._1 + 1, position._2 - 1), (position._1 + 1, position._2))))
+  def connectedFreeCellsToTheRight(gameState: GameState, position: (Int, Int)): List[(Int, Int)] = {
+    // TODO seems to be wrong! Check!
+    removeOccupedPositions(gameState,removeInvalidPositions(gameState, List((position._1-1, position._2 +1), (position._1, position._2 + 1),
+      (position._1 + 1, position._2 ))))
+  }
 
   def connectedFreeCellsToTheLeft(gameState: GameState, position: (Int, Int)): List[(Int, Int)] =
     removeOccupedPositions(gameState, removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1),
