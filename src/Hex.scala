@@ -18,10 +18,10 @@ object Hex {
         (pos._1, pos._2, rand)
       }
       else computerMove(gameState, color, rand)
-      printInTUI(play(gameState, (nextPosition._1, nextPosition._2), color))
       // Debug
       println("Extremes: red->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Red) +
         "blue->" + extremePositionsForColor(play(gameState, (nextPosition._1, nextPosition._2), color), Cells.Blue))
+      printInTUI(play(gameState, (nextPosition._1, nextPosition._2), color))
       val accept = askUserForMoveAcceptance()
       if (accept)
         playLoop(play(gameState, (nextPosition._1, nextPosition._2), color), !humanPlaying, Cells.opposite(color), rand)
@@ -53,22 +53,22 @@ object Hex {
         }
         else { // play at right... First get all vacant adjacent cells to the right, and choose one randomly
           val possibleCells=extremePositions._2.foldRight(List[(Int,Int)]())((position:(Int,Int),runningList:List[(Int,Int)])=>connectedFreeCellsToTheRight(gameState,position):::runningList)
-          // DEBUG
-          println("Possible cells to the right:"+possibleCells)
-          // TODO choose random position
+          //  choose random position
           val nextRand = rand.nextInt(possibleCells.length)
           val position = possibleCells(nextRand._1)
-          (0,0,nextRand._2)
+          // DEBUG
+          println("Possible cells to the right:"+possibleCells+" rand index:"+nextRand._1+" chosen position:"+possibleCells(nextRand._1))
+          (possibleCells(nextRand._1)._1,possibleCells(nextRand._1)._2,nextRand._2)
         }
         else {// play at left... First get all vacant adjacent cells to the left, and choose one randomly
-          val possibleCells = extremePositions._1.foldRight(List[(Int, Int)]())((position: (Int, Int), runningList: List[(Int, Int)]) => connectedFreeCellsToTheRight(gameState, position) ::: runningList)
-        // DEBUG
-        println("Possible cells to the right:" + possibleCells)
-        // TODO choose random position
+          val possibleCells = extremePositions._1.foldRight(
+            List[(Int, Int)]())((position: (Int, Int), runningList: List[(Int, Int)]) => Hex.connectedFreeCellsToTheLeft(gameState, position) ::: runningList)
+        // choose random position
         val nextRand = rand.nextInt(possibleCells.length)
         val position = possibleCells(nextRand._1)
-        // TODO
-        (0,0,rand)
+        // DEBUG
+        println("Possible cells to the left:" + possibleCells+" rand index:"+nextRand._1+" chosen position:"+possibleCells(nextRand._1))
+        (possibleCells(nextRand._1)._1,possibleCells(nextRand._1)._2,nextRand._2)
       }
     // Old implementation, purely random
     /*val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
@@ -105,13 +105,13 @@ object Hex {
 
   def connectedFreeCellsToTheRight(gameState: GameState, position: (Int, Int)): List[(Int, Int)] = {
     // TODO seems to be wrong! Check!
-    removeOccupedPositions(gameState,removeInvalidPositions(gameState, List((position._1-1, position._2 +1), (position._1, position._2 + 1),
-      (position._1 + 1, position._2 ))))
+    removeOccupedPositions(gameState,removeInvalidPositions(gameState, List((position._1-1, position._2 +1),
+      (position._1, position._2 + 1),(position._1 + 1, position._2 ))))
   }
 
   def connectedFreeCellsToTheLeft(gameState: GameState, position: (Int, Int)): List[(Int, Int)] =
-    removeOccupedPositions(gameState, removeInvalidPositions(gameState, List((position._1, position._2 - 1), (position._1, position._2 + 1),
-      (position._1 - 1, position._2 - 1), (position._1 - 1, position._2))))
+    removeOccupedPositions(gameState, removeInvalidPositions(gameState, List((position._1, position._2 - 1),
+      (position._1 - 1, position._2), (position._1 - 1, position._2+1))))
   def hasContiguousLine(gameState: GameState): Boolean = {
     def isWinningPath(gameState: GameState, color: Cells.Cell, position: (Int, Int), visitedPositions: List[(Int, Int)]): Boolean = {
       val currentCell = gameState(position._1)(position._2)
@@ -161,11 +161,14 @@ object Hex {
       askHumanPos(gameState)
     }
   }
-
+  @tailrec
   def askUserForMoveAcceptance(): Boolean = {
-    println("Prima enter para continuar ou u/U/Undo para desfazer última jogada.")
+    println("Prima 'C' para continuar ou u/U/Undo para desfazer última jogada.")
     val answer = readLine()
-    !answer.equals("U") && !answer.equals("Undo") && !answer.equals("u")
+    if(!answer.equals("U") && !answer.equals("Undo") && !answer.equals("u") && !answer.equals("C") && !answer.equals("c"))
+      askUserForMoveAcceptance()
+    else
+      !answer.equals("U") && !answer.equals("Undo") && !answer.equals("u")
   }
 
 
@@ -186,6 +189,9 @@ object Hex {
     case head :: next => (gridSize - 1 - head._1, head._2) :: invertLineNumbers(next, gridSize)
   }
 
+  def invertCoordinates(uppermostCells: List[(Int, Int)]): List[(Int, Int)] =
+    uppermostCells map(in=>(in._2,in._1))
+
   // Outputs a pair with two lists: the first contains the positions with the given color more to the left/up, the second
   // the positions more to the right/down
   private def extremePositionsForColor(gameState: GameState, color: Cells.Cell): (List[(Int, Int)], List[(Int, Int)]) = {
@@ -198,7 +204,6 @@ object Hex {
           if (cellsOfColor.isEmpty) iterateLines(gameState, color, rest)
           else cellsOfColor
       }
-
     def cellsOfColorAux(line: List[Cell], lineNumber: Int, rowNumber: Int, color: Cells.Cell): List[(Int, Int)] =
     // recurses over the line and returns all positions where color is found
       line match {
@@ -218,7 +223,7 @@ object Hex {
     else{
       val uppermostCells = iterateLines(gameState.transpose, color, existingLines)
       val lowerCells = iterateLines(gameState.transpose.reverse, color, existingLines)
-      (uppermostCells, invertLineNumbers(lowerCells, gameState.length))
+      (invertCoordinates(uppermostCells), invertCoordinates(invertLineNumbers(lowerCells, gameState.length)))
     }
   }
 
