@@ -44,7 +44,7 @@ object Hex {
         (3,3,rand)
     else
       if(extremePositions._1.head._2==0) // left is already at column 0... Nothing to do here... Will try to play at the right
-        if(extremePositions._2.head._2==gameState.length-1) { // right is already at column length-1... Nothing to do here... Will try to play randomt
+        if(extremePositions._2.head._2==gameState.length-1) { // right is already at column length-1... Nothing to do here... Will try to play random
           val line: (Int, RandomWithState) = rand.nextInt(gameState.length)
           val row: (Int, RandomWithState) = line._2.nextInt(gameState.length)
           if (gameState(line._1)(row._1) == Cells.Empty)
