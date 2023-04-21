@@ -37,11 +37,11 @@ object Hex {
   def computerMove(gameState: GameState, color: Cells.Cell, rand: RandomWithState): (Int, Int, RandomWithState) = {
     val extremePositions=extremePositionsForColor(gameState,color)
     if(extremePositions._1.isEmpty)// first move: get a position near the middle...
-        // will be (3,3), or, if this is occupied, (3,2)
-      if(gameState(3)(3).equals(Cells.opposite(color)))
-        (3,2,rand)
+        // will be in the middle, or, if this is occupied, next to it
+      if(gameState(gameState.length/2)(gameState.length/2).equals(Cells.opposite(color)))
+        (gameState.length/2,gameState.length/2-1,rand)
       else
-        (3,3,rand)
+        (gameState.length/2,gameState.length/2,rand)
     else
       if(extremePositions._1.head._2==0) // left is already at column 0... Nothing to do here... Will try to play at the right
         if(extremePositions._2.head._2==gameState.length-1) { // right is already at column length-1... Nothing to do here... Will try to play random
